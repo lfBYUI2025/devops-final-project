@@ -7,3 +7,5 @@ env/
 venv/
 *.env
 pytest_cache/
+messages.db
+*.sqlite
