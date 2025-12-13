@@ -39,7 +39,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: $$ {{ secrets.DOCKER_USERNAME }}/devops-final-project: $${{ github.ref_name }},${{ secrets.DOCKER_USERNAME }}/devops-final-project:latest
+          tags: "${{ secrets.DOCKER_USERNAME }}/devops-final-project:${{ github.ref_name }},${{ secrets.DOCKER_USERNAME }}/devops-final-project:latest"
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
