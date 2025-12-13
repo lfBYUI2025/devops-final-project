@@ -35,16 +35,29 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    yum install -y docker
-    service docker start
-    usermod -a -G docker ec2-user
-    docker pull lfbyui2025/devops-final-project:latest
-    docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
-    # Log for debugging
-    docker logs -f bulletin-app > /var/log/app.log 2>&1 &
-  EOF
+  #!/bin/bash
+  yum update -y
+  yum install -y docker
+  service docker start
+  usermod -a -G docker ec2-user
+
+  # Wait for Docker to be ready
+  until docker info >/dev/null 2>&1; do
+    echo "Waiting for Docker to start..."
+    sleep 10
+  done
+
+  docker pull lfbyui2025/devops-final-project:latest
+
+  # Stop any existing container
+  docker stop bulletin-app || true
+  docker rm bulletin-app || true
+
+  docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
+
+  # Tail logs for debugging
+  docker logs -f bulletin-app > /var/log/app.log 2>&1 &
+EOF
 
   tags = {
     Name = "BulletinBoardApp"
