@@ -34,14 +34,17 @@ resource "aws_instance" "app" {
 
   security_groups = [aws_security_group.app_sg.name]
 
-  user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    yum install -y docker
-    service docker start
-    usermod -a -G docker ec2-user
-    docker run -d -p 5000:5000 lfbyui2025/devops-final-project:latest
-  EOF
+ user_data = <<-EOF
+  #!/bin/bash
+  yum update -y
+  yum install -y docker
+  service docker start
+  usermod -a -G docker ec2-user
+  docker pull lfbyui2025/devops-final-project:latest
+  docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
+  # Log for debugging
+  docker logs -f bulletin-app > /var/log/app.log 2>&1 &
+EOF
 
   tags = {
     Name = "BulletinBoardApp"
