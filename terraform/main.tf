@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "us-west-2"  # Good free-tier region; change if needed
+  region = "us-west-2"  # Good free-tier region
 }
 
 resource "aws_security_group" "app_sg" {
-  name        = "bulletin-board-sg"
+  name        = "bulletin-board-sg-${uuid()}"  # Unique name to avoid duplicates
   description = "Allow inbound traffic on port 5000"
 
   ingress {
@@ -29,22 +29,22 @@ resource "aws_security_group" "app_sg" {
 }
 
 resource "aws_instance" "app" {
-  ami           = "ami-0aff18ec83b712f05"  # Amazon Linux 2023 in us-west-2 (free-tier eligible)
+  ami           = "ami-0aff18ec83b712f05"  # Amazon Linux 2023 in us-west-2
   instance_type = "t2.micro"  # Free tier
 
-  security_groups = [aws_security_group.app_sg.name]
+  vpc_security_group_ids = [aws_security_group.app_sg.id]
 
- user_data = <<-EOF
-  #!/bin/bash
-  yum update -y
-  yum install -y docker
-  service docker start
-  usermod -a -G docker ec2-user
-  docker pull lfbyui2025/devops-final-project:latest
-  docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
-  # Log for debugging
-  docker logs -f bulletin-app > /var/log/app.log 2>&1 &
-EOF
+  user_data = <<-EOF
+    #!/bin/bash
+    yum update -y
+    yum install -y docker
+    service docker start
+    usermod -a -G docker ec2-user
+    docker pull lfbyui2025/devops-final-project:latest
+    docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
+    # Log for debugging
+    docker logs -f bulletin-app > /var/log/app.log 2>&1 &
+  EOF
 
   tags = {
     Name = "BulletinBoardApp"
