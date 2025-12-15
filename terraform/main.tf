@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_security_group" "app_sg" {
-  name        = "bulletin-board-sg-${uuid()}"  # Unique name to avoid duplicates
+  name_prefix = "bulletin-board-sg-"  # Auto-unique on re-apply
   description = "Allow inbound traffic on port 5000"
 
   ingress {
@@ -17,7 +17,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # SSH for debugging if needed
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -26,38 +26,37 @@ resource "aws_security_group" "app_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_instance" "app" {
-  ami           = "ami-0aff18ec83b712f05"  # Amazon Linux 2023 in us-west-2
-  instance_type = "t2.micro"  # Free tier
+  ami           = "ami-0aff18ec83b712f05"  # Amazon Linux 2023 us-west-2
+  instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = <<-EOF
-  #!/bin/bash
-  yum update -y
-  yum install -y docker
-  service docker start
-  usermod -a -G docker ec2-user
+    #!/bin/bash
+    yum update -y
+    yum install -y docker
+    service docker start
+    usermod -a -G docker ec2-user
 
-  # Wait for Docker to be ready
-  until docker info >/dev/null 2>&1; do
-    echo "Waiting for Docker to start..."
-    sleep 10
-  done
+    until docker info >/dev/null 2>&1; do
+      echo "Waiting for Docker..."
+      sleep 10
+    done
 
-  docker pull lfbyui2025/devops-final-project:latest
+    docker pull lfbyui2025/devops-final-project:latest
 
-  # Stop any existing container
-  docker stop bulletin-app || true
-  docker rm bulletin-app || true
+    docker stop bulletin-app || true
+    docker rm bulletin-app || true
 
-  docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
-
-  # Tail logs for debugging
-  docker logs -f bulletin-app > /var/log/app.log 2>&1 &
-EOF
+    docker run -d --restart always -p 5000:5000 --name bulletin-app lfbyui2025/devops-final-project:latest
+  EOF
 
   tags = {
     Name = "BulletinBoardApp"
